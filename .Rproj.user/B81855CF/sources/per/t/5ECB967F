@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1605407928445.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "5ECB967F",
+    "lastKnownWriteTime" : 2609273650360,
+    "last_content_update" : 1605407928445,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "76D1DBFE",
+        "caption" : "temp2_df",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=temp2_df&cache_key=76D1DBFE",
+        "displayedObservations" : 8,
+        "environment" : "",
+        "expression" : "temp2_df",
+        "object" : "temp2_df",
+        "preview" : 0,
+        "totalObservations" : 8,
+        "variables" : 8
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}

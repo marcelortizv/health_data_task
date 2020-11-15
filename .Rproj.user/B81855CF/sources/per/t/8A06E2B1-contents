@@ -1,0 +1,157 @@
+# Title: Data Task - SIEPR Pre-doc Appplication
+# Author: Marcelo Ortiz Villavicencio
+# Input: test_data.txt
+# Ouput: Analysis
+
+# load libraries. Note: If you need to install any library, please try "install.packages('name_package')"
+library(ggplot2)
+library(skimr)
+library(haven)
+library(sandwich)
+library(lmtest)
+library(clubSandwich)
+library(gtools)
+library(readxl)
+library(dplyr)
+library(lubridate)
+library(stringr)
+library(data.table)
+library(stargazer)
+
+# load data
+df = read.csv('test_data.txt')
+
+# Question 0
+
+# Summarizing data with skimr
+skim(df)
+
+# Question 1
+attach(df)
+
+# First, I set the dates and times in a proper way for code
+df$ed_tc = as.POSIXct(df$ed_tc, format = '%d%b%Y %H:%M:%S')
+df$dcord_tc = as.POSIXct(df$dcord_tc, format = '%d%b%Y %H:%M:%S')
+
+# I create two new variables for the shift_id: shift start and shift end
+list_dates = str_split(df$shiftid, " to ", n=2)
+
+start_date = c()
+end_date = c()
+for (i in 1:length(list_dates)){
+  starting = list_dates[[i]][1]
+  finishing = list_dates[[i]][2]
+  
+  # parse correct time format
+  starting = gsub("p.m.", "pm", starting)
+  starting = gsub("a.m.", "am", starting)
+  starting = gsub("noon", "12 pm", starting)
+  finishing = gsub("p.m.", "pm", finishing)
+  finishing = gsub("a.m.", "am", finishing)
+  finishing = gsub("noon", "12 pm", finishing)
+  
+  start_date = c(start_date, starting)
+  only_date = str_sub(starting, 1, 9) # save only date
+  
+  end = paste(only_date, finishing, sep = " ")
+  end_date = c(end_date, end)
+}
+
+df$shift_start = as.POSIXct(start_date, format = "%d%b%Y %I %p")
+df$shift_end = as.POSIXct(end_date, format = "%d%b%Y %I %p")
+# duration of the shift
+df$duration_shift = df$shift_end - df$shift_start
+
+# there are negative durations due to shift spaning midgnight. So, I fixed it in this loop
+for (row in 1:nrow(df)){
+  if (df[row, "duration_shift"]<0){
+    df[row, "shift_end"] = df[row, "shift_end"] + days()
+    df[row, "duration_shift"] = df[row, "shift_end"] - df[row, "shift_start"] 
+  } else{
+    next
+  }
+}
+
+# number of pacient arriving before shift start
+pac_arr_before = sum(df$ed_tc < df$shift_start, na.rm = TRUE) / nrow(df)
+# number of pacient discharged after shift end
+pac_disch_after = sum(df$dcord_tc > df$shift_end, na.rm = TRUE) / nrow(df)
+
+
+# Question 2
+dt = data.table(hour_arrived = format(df$ed_tc, format = "%H"), datum = df$xb_lntdc)
+report1 = dt %>% group_by(hour_arrived) %>% summarize(severity_by_hour = mean(datum, na.rm = TRUE))
+
+plot(report1$hour_arrived, report1$severity_by_hour, t='l', lty = 3, main = 'Hourly Patterns of Patient Arrivals', ylab = 'Mean Patient Severity', xlab= 'Hour of day') 
+
+# Question 3
+  
+phys_shift = df %>% select(phys_name, shiftid, shift_start, shift_end, duration_shift) %>% distinct(shiftid, phys_name, .keep_all = TRUE) 
+census_df = NULL
+for (ind in 1:nrow(phys_shift)){
+  name = phys_shift[ind, "phys_name"]
+  id = phys_shift[ind, "shiftid"]
+  duration = as.numeric(phys_shift[ind, "duration_shift"])
+  period_study = duration + 4
+  
+  # I did two temporal dataframe: filter and temp
+  # filter refers to all patients that meet a specific shift with a specific physician
+  # temp refers to a small version of the census for the specific shift and physician above.
+  filter_df = df %>% filter(phys_name == name & shiftid == id)
+  temp_df = phys_shift[ind,]
+  temp_df = as.data.frame(lapply(temp_df, rep, period_study))
+  temp_df$hour = NA
+  temp_df$index = NA
+  temp_df$census = NA
+  
+  # calculate census for each timestamp of shift and save in temp_df
+  for (row in 1:nrow(temp_df)){
+    temp_df[row, "hour"] = format(temp_df$shift_start[row] + hours(-1 + row), format = '%Y-%m-%d %H:%M:%S')
+    temp_df[row, "index"] = -(duration + 1) + row
+    
+    current_hour = temp_df[row, "hour"]
+    temp_df[row, "census"] = filter_df %>% filter(current_hour < dcord_tc) %>% summarize(count = n())
+  }
+  
+  # Save data
+  census_df = rbind(census_df, temp_df)
+}
+
+write.csv(census_df, file = 'census.csv')
+
+# Question 4
+ggplot_df = census_df %>% group_by(phys_name, index) %>% summarize(mean_census = mean(census,na.rm=TRUE))
+ggplot(ggplot_df, aes(x = index , y=mean_census)) + geom_line(aes(color = phys_name), size = 1) + 
+  theme_minimal() + xlab("Index") + ylab("Average Census of Patients") + labs(color = "Physician Name")
+
+df_reg = df
+df_reg$time2shifttime = NA
+df_reg$census = NA
+for (row in 1:nrow(df_reg)){
+  arrival_time = format(df_reg[row, "ed_tc"], format = '%Y-%m-%d %H:%M:%S')
+  name = df_reg[row, "phys_name"]
+  id = df_reg[row, "shiftid"]
+  
+  #filtering data by physician, shift id and if the time of arrival to ED is less or equal than current hour of physician's shift 
+  temp2_df = census_df %>% filter(phys_name == name & shiftid == id & arrival_time <= census_df$hour)
+  
+  # the fist row con temp2_df will have the information of the nearest interval 
+  # that fits the time of arrival of the patient and the time of the physician's shift
+  df_reg[row, "time2shifttime"] = temp2_df[1, "index"]
+  df_reg[row, "census"] = temp2_df[1, "census"]
+}
+
+# regression
+m1 =  lm(formula = xb_lntdc ~ census,  data = df_reg)
+reg1 = coeftest(m1, vcovCR(m1, cluster = df_reg$phys_name, type = "CR1S"), cluster = df_reg$phys_name)
+
+m2 =  lm(formula = xb_lntdc ~ census + time2shifttime,  data = df_reg)
+reg2 = coeftest(m2, vcovCR(m2, cluster = df_reg$phys_name, type = "CR1S"), cluster = df_reg$phys_name)
+
+# Generate a table in a html file. I choose this form because is easy to open in any computer but it could be in any format
+
+stargazer(reg1, reg2, type='text', title = "Which physician appears to be the fastest at discharging patients?", digits = 4 ,
+          out = "table1.html", column.labels = c('OLS', 'OLS'), align=TRUE, no.space=TRUE, 
+          covariate.labels = c('Census','Time 2 End Shift'), dep.var.labels = 'Log Length of Stay') 
+
+## END

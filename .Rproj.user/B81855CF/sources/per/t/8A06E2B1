@@ -1,0 +1,26 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1605369244569.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "921383103",
+    "id" : "8A06E2B1",
+    "lastKnownWriteTime" : 1605412164,
+    "last_content_update" : 1605412164501,
+    "path" : "C:/Users/Maven Road/Desktop/Task package/make_task.R",
+    "project_path" : "make_task.R",
+    "properties" : {
+        "cursorPosition" : "156,6",
+        "scrollLine" : "130",
+        "tempName" : "Untitled1"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

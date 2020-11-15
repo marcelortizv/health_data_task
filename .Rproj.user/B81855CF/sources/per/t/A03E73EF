@@ -1,0 +1,33 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1605399589937.000,
+    "dirty" : false,
+    "encoding" : "",
+    "folds" : "",
+    "hash" : "0",
+    "id" : "A03E73EF",
+    "lastKnownWriteTime" : 8319104478871053602,
+    "last_content_update" : 1605399589937,
+    "path" : null,
+    "project_path" : null,
+    "properties" : {
+        "cacheKey" : "809366C6",
+        "caption" : "census_df",
+        "contentUrl" : "grid_resource/gridviewer.html?env=&obj=census_df&cache_key=809366C6",
+        "displayedObservations" : "6929",
+        "environment" : "",
+        "expression" : "census_df",
+        "object" : "census_df",
+        "preview" : "0",
+        "totalObservations" : "6929",
+        "variables" : "8"
+    },
+    "read_only" : false,
+    "read_only_alternatives" : [
+    ],
+    "relative_order" : 6,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_dataframe"
+}
